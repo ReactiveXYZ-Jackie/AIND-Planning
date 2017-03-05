@@ -59,6 +59,17 @@ class AirCargoProblem(Problem):
             '''
             loads = []
             # TODO create all load ground actions from the domain Load action
+            
+            # for all airport
+            for airport in self.airports:
+                # for all planes
+                for plan in self.planes:
+                    # for all cargos:
+                    for cargo in self.cargos:
+                        # init precondition
+                        # At(cargo, a) and At(plane, airport)
+                        
+
             return loads
 
         def unload_actions():
