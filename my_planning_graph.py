@@ -489,7 +489,7 @@ class PlanningGraph():
         for a1_precond in node_a1.parents:
             for a2_precond in node_a2.parents:
                 # check mutex
-                if a1_precond.is_mutex(a2_precond) or a2_precond.is_mutex(a1_precond):
+                if a1_precond.is_mutex(a2_precond):
                     return True
 
         return False
