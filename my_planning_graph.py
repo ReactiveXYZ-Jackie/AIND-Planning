@@ -3,6 +3,9 @@ from aimacode.search import Problem
 from aimacode.utils import expr
 from lp_utils import decode_state
 
+# cache for mutex update
+update_a_mutex_cache = dict()
+update_s_mutex_cache = dict()
 
 class PgNode():
     ''' Base class for planning graph nodes.
@@ -77,6 +80,10 @@ class PgNode_s(PgNode):
         if not self.is_pos:
             self.literal = expr('~{}'.format(self.symbol))
 
+        # hash appears to be super draining mechanism
+        # once initialized, no need to rehash it all the time
+        self.hashed = hash(self.symbol) ^ hash(self.is_pos)
+
     def show(self):
         '''helper print for debugging shows literal plus counts of parents, children, siblings
 
@@ -97,7 +104,8 @@ class PgNode_s(PgNode):
                    and (self.is_pos == other.is_pos)
 
     def __hash__(self):
-        return hash(self.symbol) ^ hash(self.is_pos)
+
+        return self.hashed
 
 
 class PgNode_a(PgNode):
@@ -128,6 +136,10 @@ class PgNode_a(PgNode):
         self.is_persistent = False
         if self.prenodes == self.effnodes:
             self.is_persistent = True
+
+        # hash appears to be a super draining mechanism
+        # once initialized, no need to rehash it all the time
+        self.hash_value = hash(self.action.name) ^ hash(self.action.args)
 
     def show(self):
         '''helper print for debugging shows action plus counts of parents, children, siblings
@@ -181,7 +193,7 @@ class PgNode_a(PgNode):
                    and (self.action.args == other.action.args)
 
     def __hash__(self):
-        return hash(self.action.name) ^ hash(self.action.args)
+        return self.hash_value
 
 
 def mutexify(node1: PgNode, node2: PgNode):
@@ -385,10 +397,16 @@ class PlanningGraph():
         nodelist = list(nodeset)
         for i, n1 in enumerate(nodelist[:-1]):
             for n2 in nodelist[i + 1:]:
+                lookup_string = n1.action.name + n2.action.name # + n1.action.args + n2.action.args
+                if lookup_string in update_a_mutex_cache:
+                    mutexify(n1, n2)
+                    break
+
                 if (self.serialize_actions(n1, n2) or
                         self.inconsistent_effects_mutex(n1, n2) or
                         self.interference_mutex(n1, n2) or
                         self.competing_needs_mutex(n1, n2)):
+                    update_a_mutex_cache[lookup_string] = True
                     mutexify(n1, n2)
 
     def serialize_actions(self, node_a1: PgNode_a, node_a2: PgNode_a) -> bool:
@@ -510,7 +528,13 @@ class PlanningGraph():
         nodelist = list(nodeset)
         for i, n1 in enumerate(nodelist[:-1]):
             for n2 in nodelist[i + 1:]:
+                lookup_string = n1.symbol + n2.symbol # + n1.action.args + n2.action.args
+                if lookup_string in update_s_mutex_cache:
+                    mutexify(n1, n2)
+                    break
+
                 if self.negation_mutex(n1, n2) or self.inconsistent_support_mutex(n1, n2):
+                    update_s_mutex_cache[lookup_string] = True
                     mutexify(n1, n2)
 
     def negation_mutex(self, node_s1: PgNode_s, node_s2: PgNode_s) -> bool:
@@ -527,7 +551,7 @@ class PlanningGraph():
         :return: bool
         '''
         # check if s1 and s2 has the same literal but opposity parity
-        return node_s1.symbol == node_s2.symbol and (node_s1.is_pos != node_s2.is_pos or node_s2.is_pos != node_s1.is_pos)
+        return node_s1.symbol == node_s2.symbol and node_s1.is_pos != node_s2.is_pos
 
     def inconsistent_support_mutex(self, node_s1: PgNode_s, node_s2: PgNode_s):
         '''

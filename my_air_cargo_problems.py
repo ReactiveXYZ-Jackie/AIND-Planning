@@ -167,11 +167,11 @@ class AirCargoProblem(Problem):
         """
         # decode current state
         current_state = decode_state(state, self.state_map)
+        # extract current boolean statuses
+        current_pos = current_state.pos
+        current_neg = current_state.neg
 
-        def check_precond(action):
-            # extract current boolean statuses
-            current_pos = current_state.pos
-            current_neg = current_state.neg
+        def check_precond(action): 
             # check if current state has satisfied the preconditions of this action
             for condition in action.precond_pos:
                 if condition not in current_pos:
@@ -198,15 +198,11 @@ class AirCargoProblem(Problem):
         previous_neg = previous_state.neg
         # try modify previous boolean conjunctions with the effect of action
         for added in action.effect_add:
-            if added not in previous_pos:
-                previous_pos.append(added)
-            if added in previous_neg:
-                previous_neg.remove(added)
+            previous_pos.append(added)
+            previous_neg.remove(added)
         for removed in action.effect_rem:
-            if removed in previous_pos:
-                previous_pos.remove(removed)
-            if removed not in previous_neg:
-                previous_neg.append(removed)
+            previous_pos.remove(removed)
+            previous_neg.append(removed)
         # construct new FluentState from modified data
         return encode_state(FluentState(previous_pos, previous_neg), self.state_map)
 
@@ -218,7 +214,7 @@ class AirCargoProblem(Problem):
         """
         # decode the previous state
         previous_state = decode_state(state, self.state_map).pos
-        # check if the previous state satify the goal state
+        # check if the previous state satifies the goal state
         for condition in self.goal:
             if condition not in previous_state:
                 return False
@@ -237,7 +233,6 @@ class AirCargoProblem(Problem):
         out from the current state in order to satisfy each individual goal
         condition.
         '''
-        # requires implemented PlanningGraph class
         pg = PlanningGraph(self, node.state)
         pg_levelsum = pg.h_levelsum()
         return pg_levelsum
@@ -249,7 +244,6 @@ class AirCargoProblem(Problem):
         conditions by ignoring the preconditions required for an action to be
         executed.
         '''
-        # TODO implement (see Russell-Norvig Ed-3 10.2.3  or Russell-Norvig Ed-2 11.2)
 
         # extract all queries that are in the goal and are positive
         # TODO: try implementing the greedy set cover algorithm
