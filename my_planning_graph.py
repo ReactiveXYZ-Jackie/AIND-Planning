@@ -485,7 +485,13 @@ class PlanningGraph():
         :return: bool
         '''
 
-        # TODO test for Competing Needs between nodes
+        # loop through a1 and a2's preconditions nodes
+        for a1_precond in node_a1.parents:
+            for a2_precond in node_a2.parents:
+                # check mutex
+                if a1_precond.is_mutex(a2_precond) or a2_precond.is_mutex(a1_precond):
+                    return True
+
         return False
 
     def update_s_mutex(self, nodeset: set):
@@ -520,8 +526,8 @@ class PlanningGraph():
         :param node_s2: PgNode_s
         :return: bool
         '''
-        # TODO test for negation between nodes
-        return False
+        # check if s1 and s2 has the same literal but opposity parity
+        return node_s1.symbol == node_s2.symbol and (node_s1.is_pos != node_s2.is_pos or node_s2.is_pos != node_s1.is_pos)
 
     def inconsistent_support_mutex(self, node_s1: PgNode_s, node_s2: PgNode_s):
         '''
@@ -539,8 +545,14 @@ class PlanningGraph():
         :param node_s2: PgNode_s
         :return: bool
         '''
-        # TODO test for Inconsistent Support between nodes
-        return False
+        # loop through the preconditions for both nodes
+        for s1_precond in node_s1.parents:
+            for s2_precond in node_s2.parents:
+                # once one of the pair is not mutex, return false
+                if not s1_precond.is_mutex(s2_precond):
+                    return False
+        # otherwise, test passes
+        return True
 
     def h_levelsum(self) -> int:
         '''The sum of the level costs of the individual goals (admissible if goals independent)
@@ -548,6 +560,15 @@ class PlanningGraph():
         :return: int
         '''
         level_sum = 0
-        # TODO implement
-        # for each goal in the problem, determine the level cost, then add them together
+        explored = set()
+        # loop through all S levels
+        for level in range(len(self.s_levels)):
+            for s_node in self.s_levels[level]:
+                # loop through the goal and check equality
+                # as well as whether this goal has already been satisfied or not
+                for goal_literal in self.problem.goal:
+                    if s_node.literal == goal_literal and s_node not in explored:
+                        level_sum += level
+                        explored.add(s_node)
+
         return level_sum
