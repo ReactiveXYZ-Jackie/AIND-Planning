@@ -3,7 +3,7 @@ import errno
 import os
 import signal
 import argparse
-from multiprocessing import Pool
+from multiprocessing import (Pool, cpu_count)
 from timeit import default_timer as timer
 from aimacode.search import InstrumentedProblem
 from aimacode.search import (breadth_first_search, astar_search,
@@ -72,6 +72,9 @@ def run_search(problem_pack, search_function_pack, heuristic_pack=None):
         node = search_function(ip)
     end = timer()
 
+    if heuristic_desc is None:
+        heuristic_desc = ""
+
     print("\nSolving {} using {}{}...".format(problem_desc, search_function_desc, heuristic_desc))
     print("\nExpansions   Goal Tests   New Nodes")
     print("{}\n".format(ip))
@@ -86,15 +89,16 @@ def search_with_timeout(problem, search_fn, heuristic):
         print(e)
 
 def main():
+    # results for storing parallel tasks
     results = []
+    num_workers = cpu_count() - 1
     # start running search function
     # using 3 process workers
-    with Pool(processes = 4) as pool:
+    with Pool(processes = num_workers) as pool:
         for pname, p in PROBLEMS:
             for sname, s_fn, h in SEARCHES:
                 # extract arguments
                 hstring = h if not h else " with {}".format(h)
-
                 problem = p()
 
                 if not h:

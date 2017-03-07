@@ -247,7 +247,7 @@ class AirCargoProblem(Problem):
         executed.
         '''
 
-        # extract all queries that are in the goal and are positive
+        # extract all queries that are in the goal and are not positive
         # TODO: try implementing the greedy set cover algorithm
         queries = [ q for q in self.goal if q not in decode_state(node.state, self.state_map).pos]
 
