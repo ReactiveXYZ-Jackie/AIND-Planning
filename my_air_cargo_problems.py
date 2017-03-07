@@ -199,9 +199,11 @@ class AirCargoProblem(Problem):
         # try modify previous boolean conjunctions with the effect of action
         for added in action.effect_add:
             previous_pos.append(added)
-            previous_neg.remove(added)
+            if added in previous_neg:
+                previous_neg.remove(added)
         for removed in action.effect_rem:
-            previous_pos.remove(removed)
+            if removed in previous_pos:
+                previous_pos.remove(removed)
             previous_neg.append(removed)
         # construct new FluentState from modified data
         return encode_state(FluentState(previous_pos, previous_neg), self.state_map)
